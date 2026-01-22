@@ -1,25 +1,44 @@
 class Course:
-    def __init__(self, course_id, name, credits, prerequisites=None):
+    def __init__(self, course_id, name, credits, prerequisite=None):
         self.course_id = course_id
         self.name = name
-        self.credits = credits
-        self.prerequisites = prerequisites or []
+        self.credits = credits          # positive integer
+        self.prerequisite = prerequisite  # course_id hoặc None
 
 
 class Admin:
     def __init__(self):
-        self.courses = {}
+        self.courses = {}  # key: course_id
 
-    def add_course(self, course):
-        self.courses[course.course_id] = course
+    def add_course(self, course_id, name, credits, prerequisite=None):
+        if not isinstance(credits, int) or credits <= 0:
+            raise ValueError("Credits must be a positive integer")
 
-    def update_course(self, course_id, name=None, credits=None):
         if course_id in self.courses:
-            if name:
-                self.courses[course_id].name = name
-            if credits:
-                self.courses[course_id].credits = credits
+            raise ValueError("Duplicate course ID")
+
+        self.courses[course_id] = Course(
+            course_id, name, credits, prerequisite
+        )
+
+    def update_course(self, course_id, name=None, credits=None, prerequisite=None):
+        if course_id not in self.courses:
+            raise ValueError("Course not found")
+
+        course = self.courses[course_id]
+
+        if credits is not None:
+            if not isinstance(credits, int) or credits <= 0:
+                raise ValueError("Credits must be a positive integer")
+            course.credits = credits
+
+        if name is not None:
+            course.name = name
+
+        if prerequisite is not None:
+            course.prerequisite = prerequisite
 
     def delete_course(self, course_id):
-        if course_id in self.courses:
-            del self.courses[course_id]
+        if course_id not in self.courses:
+            raise ValueError("Course not found")
+        del self.courses[course_id]
