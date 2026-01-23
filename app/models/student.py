@@ -1,3 +1,9 @@
+import sqlite3
+import re
+
+# ==========================================================
+# 1. Unified Student Class (Registration & Grades Logic)
+# ==========================================================
 class Student:
     MAX_CREDITS = 18  # tín chỉ tối đa theo quy định
 
@@ -81,4 +87,84 @@ class Student:
             print("GPA:", round(total_points / total_credits, 2))
         else:
             print("GPA: Not available")
+
+# =====================================
+# 2. Update Personal Profile Function 
+# =====================================
+def update_student_profile(student_id):
+    print(f"\n=== UPDATE STUDENT PROFILE (ID: {student_id}) ===")
+    
+    # 1. Connect to Database and get current info
+    conn = sqlite3.connect('management_system.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM Student WHERE studentID = ?", (student_id,))
+    row = cursor.fetchone()
+    
+    if not row:
+        print("Error: Student not found.")
+        conn.close()
+        return
+
+    # 2. Get Input and Check if empty (Step by step)
+    
+    # --- Full Name ---
+    name_input = input(f"Enter new Name (Current: {row['fullName']}): ")
+    if name_input == "":
+        new_name = row['fullName']
+    else:
+        new_name = name_input
+
+    # --- Phone Number ---
+    phone_input = input(f"Enter new Phone (Current: {row['phone']}): ")
+    if phone_input == "":
+        new_phone = row['phone']
+    else:
+        new_phone = phone_input
+
+    # --- Email ---
+    email_input = input(f"Enter new Email (Current: {row['email']}): ")
+    if email_input == "":
+        new_email = row['email']
+    else:
+        new_email = email_input
+
+    # --- Address ---
+    address_input = input(f"Enter new Address (Current: {row['address']}): ")
+    if address_input == "":
+        new_address = row['address']
+    else:
+        new_address = address_input
+
+    # 3. Data Validation
+    is_valid = True
+
+    # Check Phone: must be exactly 10 digits
+    if not (new_phone.isdigit() and len(new_phone) == 10):
+        print("Error: Phone number must be exactly 10 digits.")
+        is_valid = False
+
+    # Check Email format using re
+    if not re.match(r"[^@]+@[^@]+\.[^@]+", new_email):
+        print("Error: Invalid Email format.")
+        is_valid = False
+
+    # 4. Save to Database if everything is okay
+    if is_valid:
+        try:
+            cursor.execute("""
+                UPDATE Student 
+                SET fullName = ?, phone = ?, email = ?, address = ?
+                WHERE studentID = ? 
+                """, (new_name, new_phone, new_email, new_address, student_id))
+            
+            conn.commit()
+            print("Success: Information updated!")
+        except Exception as e:
+            print(f"Database Error: {e}")
+            
+    conn.close()
+
+
 
