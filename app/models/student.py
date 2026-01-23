@@ -43,3 +43,42 @@ class Student:
                 self.registered_courses.remove(course)
                 return
         raise ValueError("Course not found in registration list")
+
+
+# Chức năng xem điểm cho sinh viên
+class Student:
+    def __init__(self, student_id, fullname):
+        self.student_id = student_id
+        self.fullname = fullname
+        self.enrollments = []  # 0..*
+
+    def view_grades(self):
+        if not self.enrollments:
+            print("You have no enrolled courses.")
+            return
+
+        total_points = 0
+        total_credits = 0
+
+        print("===== VIEW GRADES =====")
+        for e in self.enrollments:
+            c = e.course
+            print(f"Course ID   : {c.course_id}")
+            print(f"Course Name : {c.course_name}")
+            print(f"Credits     : {c.credits}")
+            print(f"Semester    : {e.semester}")
+
+            if e.grade is None:
+                print("Grade       : Grade not available yet")
+            else:
+                print(f"Grade       : {e.grade}")
+                total_points += e.grade * c.credits
+                total_credits += c.credits
+
+            print("------------------------")
+
+        if total_credits > 0:
+            print("GPA:", round(total_points / total_credits, 2))
+        else:
+            print("GPA: Not available")
+
