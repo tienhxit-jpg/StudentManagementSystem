@@ -41,4 +41,27 @@ class User:
         except Exception as e:
             print(f"(!) Error during login: {e}")
             return None
-        
+
+
+# Chức năng xem thông báo công cộng cho User
+class User:
+    def view_notif(self, notifications):
+        if not notifications:
+            print("No announcements available.")
+            return
+
+        print("===== PUBLIC NOTIFICATIONS =====")
+        for n in notifications:
+            print(f"{n.notif_id}. {n.title}")
+
+        choice = input("Enter Notification ID to read details or '0' to go back: ")
+
+        if choice == "0":
+            return
+
+        for n in notifications:
+            if n.notif_id == choice:
+                print(n.get_detail())
+                return
+
+        print("Invalid Notification ID.")
