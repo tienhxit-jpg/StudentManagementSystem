@@ -35,6 +35,7 @@ class Student:
             print("3. Register for Courses")
             print("4. View Notifications")
             print("5. Update Personal Profile")
+            print("6. Withdraw from Courses")
             print("0. Logout")
             print("--------------------------------------------------")
             
@@ -50,6 +51,8 @@ class Student:
                 self.view_notifications()
             elif selection == '5':
                 print("- Update Personal Profile: Modifying phone, email, or address.")
+            elif selection == '6':
+                self.withdraw_courses()
             elif selection == '0':
                 print("- Logout: Ending session. Returning to Main Menu.")
                 break
@@ -326,8 +329,8 @@ class Student:
 
         # Register
         try:
-            query = "INSERT INTO enrollments (student_id, course_id, schedule_id, status) VALUES (?, ?, ?, ?)"
-            db.execute_query(query, (self.student_id, selected['course_id'], choice, 'registered'))
+            query = "INSERT INTO enrollments (student_id, course_id, schedule_id, semester, year, status) VALUES (?, ?, ?, ?, ?, ?)"
+            db.execute_query(query, (self.student_id, selected['course_id'], choice, semester, year, 'registered'))
             print("Successfully registered!")
         except Exception as e:
             print(f"Database error: {e}")
@@ -335,6 +338,96 @@ class Student:
     def _time_to_minutes(self, t_str):
         h, m = map(int, t_str.split(':'))
         return h * 60 + m
+
+    def withdraw_courses(self):
+        """Withdraw from registered courses"""
+        from datetime import datetime
+        
+        print("\n[COURSE WITHDRAWAL]")
+        
+        db = DBManager()
+        current_date = datetime.now().date()
+        
+        # Tự động xác định semester và year từ ngày hiện tại
+        current_month = current_date.month
+        year = str(current_date.year)
+        
+        if 1 <= current_month <= 5:
+            semester = "2"
+        elif 6 <= current_month <= 8:
+            semester = "3"
+        else:
+            semester = "1"
+        
+        print(f"Current Semester: {semester}, Year: {year}")
+        print(f"Current date: {current_date}")
+        
+        # Get currently enrolled courses without grades
+        query = """
+            SELECT e.enrollment_id, e.course_id, c.name, c.credits, 
+                   s.day_of_week, s.start_time, s.end_time, s.room,
+                   e.process_grade, e.final_grade
+            FROM enrollments e
+            JOIN courses c ON e.course_id = c.course_id
+            JOIN schedules s ON e.schedule_id = s.schedule_id
+            WHERE e.student_id = ? AND e.semester = ? AND e.year = ?
+            ORDER BY c.course_id
+        """
+        rows = db.execute_query(query, (self.student_id, semester, year))
+        
+        if not rows:
+            print("\nYou are not enrolled in any courses this semester.")
+            input("\nPress Enter to continue...")
+            return
+        
+        # Filter out courses that already have grades (grades > 0 means graded)
+        withdrawable = [r for r in rows if (r['process_grade'] is None or r['process_grade'] == 0.0) and (r['final_grade'] is None or r['final_grade'] == 0.0)]
+        
+        if not withdrawable:
+            print("\nAll your enrolled courses have grades assigned.")
+            print("You cannot withdraw from courses with grades.")
+            input("\nPress Enter to continue...")
+            return
+        
+        print(f"\nYour Enrolled Courses (Withdrawable):")
+        print(f"{'No.':<5} {'Course ID':<12} {'Name':<30} {'Credits':<8} {'Schedule':<30}")
+        print("-" * 95)
+        
+        course_map = {}
+        for idx, row in enumerate(withdrawable, 1):
+            schedule = f"{row['day_of_week']} {row['start_time']}-{row['end_time']} ({row['room']})"
+            print(f"{idx:<5} {row['course_id']:<12} {row['name']:<30} {row['credits']:<8} {schedule:<30}")
+            course_map[str(idx)] = row
+        
+        choice = input("\nEnter course number to withdraw (0 to cancel): ")
+        
+        if choice == '0' or choice not in course_map:
+            if choice != '0':
+                print("Invalid selection.")
+            return
+        
+        selected = course_map[choice]
+        
+        # Confirm withdrawal
+        print(f"\n⚠️  WARNING: You are about to withdraw from:")
+        print(f"   Course: {selected['name']} ({selected['course_id']})")
+        print(f"   Credits: {selected['credits']}")
+        confirm = input("\nAre you sure? (Y/N): ").strip().upper()
+        
+        if confirm != 'Y':
+            print("Withdrawal cancelled.")
+            return
+        
+        # Delete the enrollment
+        try:
+            query = "DELETE FROM enrollments WHERE enrollment_id = ?"
+            db.execute_query(query, (selected['enrollment_id'],))
+            print("\n✅ Successfully withdrawn from course!")
+            print(f"   Course: {selected['name']} ({selected['course_id']})")
+        except Exception as e:
+            print(f"\n❌ Database error: {e}")
+        
+        input("\nPress Enter to continue...")
 
     def view_notifications(self):
         """View personal notifications for this student"""
