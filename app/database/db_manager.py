@@ -116,12 +116,12 @@ class DatabaseManager:
             CREATE TABLE IF NOT EXISTS schedules (
                 schedule_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 course_id TEXT NOT NULL,
-                lecturer_id TEXT,
+                lecturer_id TEXT NOT NULL,
                 semester TEXT NOT NULL,
                 year INTEGER NOT NULL,
                 day_of_week TEXT CHECK(day_of_week IN ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')),
-                start_time TEXT,
-                end_time TEXT,
+                start_time TEXT NOT NULL,
+                end_time TEXT NOT NULL,
                 room TEXT,
                 FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE,
                 FOREIGN KEY (lecturer_id) REFERENCES lecturers(lecturer_id)
@@ -134,7 +134,7 @@ class DatabaseManager:
                 enrollment_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 student_id TEXT NOT NULL,
                 course_id TEXT NOT NULL,
-                schedule_id INTEGER,
+                schedule_id INTEGER NOT NULL,
                 enrollment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 status TEXT DEFAULT 'registered' CHECK(status IN ('registered', 'completed', 'dropped', 'failed')),
                 grade REAL,
@@ -227,7 +227,8 @@ class DatabaseManager:
         """
         conn = self.connect()
         cursor = conn.cursor()
-        return cursor.lastrowid
+        last_id = cursor.lastrowid
+        return last_id if last_id is not None else 0
     
     def begin_transaction(self):
         """Bắt đầu transaction"""
