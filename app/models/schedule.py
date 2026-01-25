@@ -1,96 +1,72 @@
-import sqlite3
+"""Schedule model"""
+from ..database.db_manager import DatabaseManager as DBManager
 
-# Database configuration
-DB_FILE = 'db_management.db'
+class Schedule:
+    def __init__(self, schedule_id, course_id, lecturer_id, semester,
+                  year, day_of_week, start_time, end_time, room, course_name=None):
+        self.schedule_id = schedule_id
+        self.course_id = course_id
+        self.lecturer_id = lecturer_id
+        self.semester = semester
+        self.year = year
+        self.day_of_week = day_of_week
+        self.start_time = start_time
+        self.end_time = end_time
+        self.room = room
+        self.course_name = course_name
 
-def get_connection():
-    return sqlite3.connect(DB_FILE)
-
-def view_schedule(lecturer_id):
-    """
-    Use-case 11: Check Timetable
-    Retrieves and displays the teaching schedule for the lecturer.
-    """
-    print("\n" + "="*70)
-    print(f"{'MY TEACHING SCHEDULE':^70}")
-    print("="*70)
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    try:
-        # Join Course and Schedule based on the Class Diagram (input_file_3)
-        # Retrieves Course ID, Name, Time, and Location
-        cursor.execute('''
-            SELECT c.courseID, c.courseName, s.time, s.location
-            FROM Course c
-            JOIN Schedule s ON c.courseID = s.courseID
-            WHERE c.lecturerID = ?
-            ORDER BY s.time ASC
-        ''', (lecturer_id,))
+    @staticmethod
+    def get_schedules_by_userID(user_id, db):
+        query = """
+            SELECT s.schedule_id, s.course_id, s.lecturer_id, s.semester, 
+                   s.year, s.day_of_week, s.start_time, s.end_time, s.room, c.name as course_name
+            FROM schedules s
+            JOIN courses c ON s.course_id = c.course_id
+            WHERE s.lecturer_id = ?
+            UNION
+            SELECT s.schedule_id, s.course_id, s.lecturer_id, s.semester, 
+                   s.year, s.day_of_week, s.start_time, s.end_time, s.room, c.name as course_name
+            FROM schedules s
+            JOIN courses c ON s.course_id = c.course_id
+            JOIN enrollments e ON s.schedule_id = e.schedule_id
+            WHERE e.student_id = ?
+        """
+        rows = db.execute_query(query, (user_id, user_id))
         
-        timetable = cursor.fetchall()
+        schedules = []
+        for row in rows:
+            schedules.append(Schedule(
+                row['schedule_id'], row['course_id'], row['lecturer_id'],
+                row['semester'], row['year'], row['day_of_week'],
+                row['start_time'], row['end_time'], row['room'], row['course_name']
+            ))
+        return schedules
 
-        # Alternative Flow: If no timetable data is found
-        if not timetable:
-            print("(!) Notification: No timetable available for your assigned courses.")
-        else:
-            # Main Flow: Display the timetable
-            print(f"{'Course ID':<12} {'Course Name':<25} {'Time':<20} {'Location':<10}")
-            print("-" * 70)
-            
-            for row in timetable:
-                print(f"{row[0]:<12} {row[1]:<25} {row[2]:<20} {row[3]:<10}")
-            
-            print("-" * 70)
-            print(f"Total sessions found: {len(timetable)}")
-
-    except Exception as e:
-        print(f"(!) Error retrieving timetable: {e}")
-    finally:
-        conn.close()
-
-def view_student_schedule(student_id):
-    """
-    Use-case 11: Check Timetable (Student Version)
-    Retrieves the schedule for courses the student is enrolled in.
-    """
-    print("\n" + "="*75)
-    print(f"{'MY PERSONAL STUDY SCHEDULE':^75}")
-    print("="*75)
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    try:
-        # Logic: Enrollment -> Course -> Schedule
-        # We find courses where studentID matches, then get their schedule details
-        cursor.execute('''
-            SELECT c.courseID, c.courseName, s.time, s.location
-            FROM Enrollment e
-            JOIN Course c ON e.courseID = c.courseID
-            JOIN Schedule s ON c.courseID = s.courseID
-            WHERE e.studentID = ?
-            ORDER BY s.time ASC
-        ''', (student_id,))
+    @staticmethod
+    def view_schedule(user_id):
+        print("\n[ACADEMIC CALENDAR] - Weekly Schedule")
+        db = DBManager()
+        schedules = Schedule.get_schedules_by_userID(user_id, db)
         
-        timetable = cursor.fetchall()
+        if not schedules:
+            print("No schedule found.")
+            return
 
-        # Alternative flow: If no enrolled courses or no schedule found
-        if not timetable:
-            print("(!) Notification: You are not enrolled in any courses with a scheduled time.")
-        else:
-            # Main flow: Display the timetable
-            print(f"{'Course ID':<12} {'Course Name':<28} {'Time':<20} {'Room':<10}")
-            print("-" * 75)
-            
-            for row in timetable:
-                print(f"{row[0]:<12} {row[1]:<28} {row[2]:<20} {row[3]:<10}")
-            
-            print("-" * 75)
-            print(f"Total class sessions: {len(timetable)}")
-
-    except Exception as e:
-        print(f"(!) Error: Could not retrieve your timetable. {e}")
-    finally:
-        conn.close()
+        # Sort by year and semester to get the latest one
+        schedules.sort(key=lambda x: (x.year, x.semester), reverse=True)
+        current_year = schedules[0].year
+        current_semester = schedules[0].semester
+        
+        print(f"Semester: {current_semester} {current_year}")
+        print(f"{'Day':<12} {'Time':<15} {'Course':<35} {'Room':<10}")
+        print("-" * 75)
+        
+        days_order = {'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 
+                      'Friday': 5, 'Saturday': 6, 'Sunday': 7}
+        current_schedules = [s for s in schedules if s.year == current_year and s.semester == current_semester]
+        current_schedules.sort(key=lambda x: (days_order.get(x.day_of_week, 8), x.start_time))
+        
+        for s in current_schedules:
+            time_str = f"{s.start_time}-{s.end_time}"
+            course_display = f"{s.course_id} - {s.course_name}" if s.course_name else s.course_id
+            print(f"{s.day_of_week:<12} {time_str:<15} {course_display:<35} {s.room:<10}")

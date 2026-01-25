@@ -1,5 +1,5 @@
 import hashlib
-from ..database.db_manager import DBManager
+from ..database.db_manager import DatabaseManager
 
 class User:
     def __init__(self, user_id: str, password: str, full_name: str, email: str, role: str):
@@ -22,7 +22,7 @@ class User:
     account
     """
     @staticmethod
-    def login(user_id: str, password: str, db: DBManager):
+    def login(user_id: str, password: str, db: DatabaseManager):
         try:
             hashed_pass = User.hash_password(password)
             # Tim user trong database
@@ -44,7 +44,6 @@ class User:
 
 
 # Chức năng xem thông báo công cộng cho User
-class User:
     def view_notif(self, notifications):
         if not notifications:
             print("No announcements available.")
@@ -65,3 +64,4 @@ class User:
                 return
 
         print("Invalid Notification ID.")
+

@@ -1,11 +1,12 @@
 import sqlite3
 import re
+from app.models.enrollment import Enrollment
 
 # ==========================================================
 # 1. Unified Student Class (Registration & Grades Logic)
 # ==========================================================
 class Student:
-    MAX_CREDITS = 18  # tín chỉ tối đa theo quy định
+    MAX_CREDITS = 20  # tín chỉ tối đa theo quy định
 
     def __init__(self, student_id, name):
         self.student_id = student_id
@@ -52,11 +53,7 @@ class Student:
 
 
 # Chức năng xem điểm cho sinh viên
-class Student:
-    def __init__(self, student_id, fullname):
-        self.student_id = student_id
-        self.fullname = fullname
-        self.enrollments = []  # 0..*
+
 
     def view_grades(self):
         if not self.enrollments:

@@ -1,4 +1,6 @@
 import sys
+from models import User, Admin, Student, Lecturer, Enrollment, Course, Notification
+
 
 def main_menu():
     """Mục 8.1: Main Menu"""
@@ -14,11 +16,9 @@ def main_menu():
         selection = input("Selection: ")
         
         if selection == '1':
-            login_process()
+
         elif selection == '2':
-            view_public_notifications()
         elif selection == '3':
-            print("- Exit: The system stops all running processes and closes the interface.")
             sys.exit()
         else:
             print("Invalid selection. Please try again.")
