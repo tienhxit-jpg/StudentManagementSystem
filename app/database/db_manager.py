@@ -56,44 +56,37 @@ class DatabaseManager:
                 full_name TEXT NOT NULL,
                 email TEXT UNIQUE NOT NULL,
                 phone TEXT,
-                role TEXT NOT NULL CHECK(role IN ('student', 'lecturer', 'admin')),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                role TEXT NOT NULL CHECK(role IN ('student', 'lecturer', 'admin'))
             )
         ''')
         
-        # Bảng Student
+        # Bảng Student (student_id = user_id)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS students (
                 student_id TEXT PRIMARY KEY,
-                user_id TEXT NOT NULL,
                 date_of_birth DATE,
                 major TEXT,
-                enrollment_year INTEGER,
+                enrollment_year YEAR,
                 gpa REAL DEFAULT 0.0,
-                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+                FOREIGN KEY (student_id) REFERENCES users(user_id) ON DELETE CASCADE
             )
         ''')
         
-        # Bảng Lecturer
+        # Bảng Lecturer (lecturer_id = user_id)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS lecturers (
                 lecturer_id TEXT PRIMARY KEY,
-                user_id TEXT NOT NULL,
                 department TEXT,
-                specialization TEXT,
-                hire_date DATE,
-                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+                FOREIGN KEY (lecturer_id) REFERENCES users(user_id) ON DELETE CASCADE
             )
         ''')
         
-        # Bảng Admin
+        # Bảng Admin (admin_id = user_id)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS admins (
                 admin_id TEXT PRIMARY KEY,
-                user_id TEXT NOT NULL,
                 permission_level INTEGER DEFAULT 1,
-                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+                FOREIGN KEY (admin_id) REFERENCES users(user_id) ON DELETE CASCADE
             )
         ''')
         
@@ -106,8 +99,14 @@ class DatabaseManager:
                 prerequisite TEXT,
                 description TEXT,
                 max_students INTEGER DEFAULT 50,
+                process_weight REAL DEFAULT 0.3 CHECK(process_weight >= 0 AND process_weight <= 1),
+                final_weight REAL DEFAULT 0.7 CHECK(final_weight >= 0 AND final_weight <= 1),
+                register_start_date DATE,
+                register_end_date DATE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (prerequisite) REFERENCES courses(course_id)
+                FOREIGN KEY (prerequisite) REFERENCES courses(course_id),
+                CHECK(process_weight + final_weight = 1.0),
+                CHECK(register_start_date IS NULL OR register_end_date IS NULL OR register_start_date < register_end_date)
             )
         ''')
         
@@ -135,9 +134,13 @@ class DatabaseManager:
                 student_id TEXT NOT NULL,
                 course_id TEXT NOT NULL,
                 schedule_id INTEGER NOT NULL,
-                enrollment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                semester INTEGER NOT NULL,
+                year INTEGER NOT NULL,
                 status TEXT DEFAULT 'registered' CHECK(status IN ('registered', 'completed', 'dropped', 'failed')),
-                grade REAL,
+                process_grade REAL DEFAULT 0.0,
+                final_grade REAL DEFAULT 0.0,
+                grade REAL DEFAULT 0.0,
+                GPA REAL DEFAULT 0.0,
                 FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE,
                 FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE,
                 FOREIGN KEY (schedule_id) REFERENCES schedules(schedule_id),
@@ -145,14 +148,15 @@ class DatabaseManager:
             )
         ''')
         
-        # Bảng Notification
+        # Bảng Notification (hỗ trợ thông báo công khai)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS notifications (
                 notification_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id TEXT NOT NULL,
+                user_id TEXT,
                 title TEXT NOT NULL,
                 message TEXT NOT NULL,
                 type TEXT DEFAULT 'info' CHECK(type IN ('info', 'warning', 'success', 'error')),
+                is_public INTEGER DEFAULT 0,
                 is_read INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
