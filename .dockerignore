@@ -1,0 +1,48 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Database files (giữ database trong container)
+# data/*.db
+# data/*.db-*
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Git
+.git/
+.gitignore
+
+# Documentation backup
+*.md.backup
+
+# Python backup files
+*.py.backup
+
+# Test files
+test_*.py
+*_test.py
+
+# Temporary files
+tmp/
+temp/
+*.tmp
